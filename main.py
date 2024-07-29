@@ -222,7 +222,7 @@ async def on_message(message):
 
         if any(blkw in message_content_check for blkw in blacklisted_kws):
             await maliciousLinkCatched()
-        elif "http" in message_content_check:
+        else:
             link = (
                 re.search(r"(http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?",
                           message_content_check))
