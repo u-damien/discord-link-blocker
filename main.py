@@ -85,17 +85,17 @@ async def load_all_prerequisites(guild):
     # Création du rôle suspicion s'il n'existe pas
     suspicion_role = await create_suspicion_role(guild, log_channel)
 
-    # Créer le channel adprotect-catched s'i'l n'existe pas
+    # Créer le channel adprotect-caught s'i'l n'existe pas
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False, send_messages=False),
         suspicion_role: discord.PermissionOverwrite(view_channel=True, read_messages=True)
     }
-    suspicion_channel = await create_channel(guild=guild, channel_name="adprotect-catched", overwrites=overwrites,
+    suspicion_channel = await create_channel(guild=guild, channel_name="adprotect-caught", overwrites=overwrites,
                                              log_channel=log_channel)
 
     # Modification des permissions du rôle Suspicion sur tous les channels (exceptés ceux du bot)
     guild_channels = guild.channels
-    ignore_channels = ['adprotect-logs', 'adprotect-catched']
+    ignore_channels = ['adprotect-logs', 'adprotect-caught']
     for channel in guild_channels:
         if channel.name not in ignore_channels:
             await channel.set_permissions(suspicion_role, view_channel=False)
@@ -155,7 +155,7 @@ async def on_guild_join(guild):
 
 @client.event
 async def on_message(message):
-    async def maliciousLinkCatched(scanned=False, duplicated=False, pub=False):
+    async def maliciousLinkcaught(scanned=False, duplicated=False, pub=False):
         for mess in all_user_messages:
             if mess['message'].content == message_content:
                 await mess['message'].delete()
@@ -221,7 +221,7 @@ async def on_message(message):
         message_content_check = message.content.lower()
 
         if any(blkw in message_content_check for blkw in blacklisted_kws):
-            await maliciousLinkCatched()
+            await maliciousLinkcaught()
         else:
             link = (
                 re.search(r"(http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?",
@@ -230,12 +230,12 @@ async def on_message(message):
                 link = link.group()
                 if "/channels/" in link :
                     if str(message.guild.id) not in link:
-                        await maliciousLinkCatched()
+                        await maliciousLinkcaught()
                     return
                 elif await UrlScan.scan_url(link):
-                    await maliciousLinkCatched()
+                    await maliciousLinkcaught()
                 elif await duplicateMessage(message_content):
-                    await maliciousLinkCatched()
+                    await maliciousLinkcaught()
                 
                 else:
                     await send_log_in_log_channel(title="⚠ Un lien a été publié",
