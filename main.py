@@ -6,7 +6,6 @@ import random
 import re
 from dotenv import load_dotenv
 
-os.system("cls")
 client = discord.Client(intents=discord.Intents.all())
 
 load_dotenv()
