@@ -1,23 +1,15 @@
 # AdProtect - Discord Bot for Malicious Link Detection and Protection
 
-AdProtect is a Discord bot designed to protect servers from malicious links and potential phishing or advertising attacks. It scans messages in real-time to detect harmful URLs, and provides automatic role assignments, message deletions, and logging to enhance security within the server.<br>
+AdProtect is a Discord bot designed to protect servers from malicious links and potential phishing or advertising attacks. It scans messages in real-time to detect harmful URLs, and provides automatic response (quarantine of malicious actors, message deletions, and logging).<br>
 Can work with multiple discord server simultaneously
 
 This bot performs several key actions, including:
 
-- **Malicious Link Detection**: Scans messages for potentially harmful URLs (e.g., phishing links, token grabbers, and blacklisted domains).
-- **Suspicion Role & Channel**: Adds a special "Suspicion" role to users sending malicious links and sends notifications to a dedicated suspicion channel for admin review.
-- **Logging**: Automatically logs all detected malicious activity, suspicious messages, and admin actions in a designated log channel.
-- **Server Setup**: Automatically sets up necessary roles, channels, and permissions when the bot joins a server for the first time.
-- **Message Duplication Detection**: Prevents repeated spamming of similar malicious links by identifying duplicate messages across channels.
-
-## Features
-
-- **Real-time Link Scanning**: The bot checks all messages for malicious links and blacklisted URLs, immediately flagging them for review.
-- **Suspicious Activity Tracking**: When a malicious link is detected, the bot assigns a `Suspicion` role to the user, restricts their permissions, and informs admins via a dedicated channel.
-- **Customizable Permissions**: The bot allows for customizable role and channel permissions to manage suspicious users and ensure the security of your server.
-- **Automatic Setup**: On joining a new server, the bot creates required roles and channels (e.g., log channels and suspicion channels) to streamline security management.
+- **Malicious Link Detection**: Scans messages for potentially harmful URLs (e.g., phishing links, token grabbers, and blacklisted domains for discord invitations).
+- **Suspicious Activity Tracking**: When a malicious link is detected, the bot assigns a `Suspicion` role to the user, restricts their permissions, and informs admins via a dedicated channel.- **Logging**: Automatically logs all detected malicious activity, suspicious messages, and admin actions in a designated log channel.
 - **Admin Interaction**: Admins can react to flagged messages with ✅ or ❌ to clear the suspicion or ban the user, respectively.
+- **Server Setup**: Automatically sets up necessary roles (make sure to put the bot's role at the top of the discord server roles list to grant maximum privileges), channels, and permissions when the bot joins a server for the first time.
+- **Message Duplication Detection**: Prevents repeated spamming or similar malicious links (not detected by VirusTotal scans) by identifying duplicate messages across channels.
 - **Detailed Logging**: All actions (message deletions, user role assignments, and reactions) are logged in the server's log channel for full traceability.
 
 ## Prerequisites
@@ -61,17 +53,6 @@ This bot performs several key actions, including:
    python3 main.py
    ```
 
-## Usage
-
-- **When the bot joins a server**: The bot will automatically create necessary roles and channels (log channel, suspicion role, and suspicion channel) if they don't already exist.
-- **Message Scanning**: When a message containing a suspicious link is posted, the bot will:
-  - Assign the `Suspicion` role to the user.
-  - Send a notification to the suspicion channel.
-  - Log the event in the log channel.
-- **Admin Actions**: Admins can react to flagged messages with:
-  - ✅ to clear the suspicion and restore permissions.
-  - ❌ to ban the user permanently from the server.
-
 ## Configuration
 
 You can configure the bot to your specific needs by modifying the following parameters:
@@ -104,28 +85,25 @@ sequenceDiagram
     %% Bot initialization (on_ready)
     Bot->>Bot: on_ready() - Bot connected to servers
     Bot->>Guild: Initialize guild setup
-    Guild->>Bot: Return guild details (roles, channels)
+    Bot->>Guild: Fetch guild details (roles, channels)
     Bot->>LogChannel: Log bot connection and initialization
     Bot->>Guild: Create suspicion role if missing
-    Guild->>Bot: Return suspicion role
     Bot->>Guild: Create suspicion channel if missing
-    Guild->>Bot: Return suspicion channel
     Bot->>Guild: Update permissions for suspicion role
     Bot->>LogChannel: Log role/channel creation and permission update
 
     %% User sends a message (on_message)
     User->>Bot: Send message
     Bot->>Bot: Check if message contains blacklisted keywords
+    Bot->>VirusTotal: Scan URL for malicious content
+    VirusTotal->>Bot: Return scan results
     alt Malicious URL Found
-        Bot->>VirusTotal: Scan URL for malicious content
-        VirusTotal->>Bot: Return scan results
-        Bot->>LogChannel: Notify admins of suspicious URL
-        Bot->>SuspicionRole: Add suspicion role to user
-        Bot->>SuspicionChannel: Notify admins about user's suspicion
+        Bot->>LogChannel: Notify admins of suspicious URL catched and the suspicious sender
+        Bot->>SuspicionRole: Add suspicion role to user (can't read/write anymore in all channels excepting SuspicionChannel (read-only)
+        Bot->>SuspicionChannel: Notify admins about malicious URL, username and full message sent
         Bot->>LogChannel: Log suspicious URL detection and action
     else No malicious content
         Bot->>LogChannel: Notify admins about non-malicious URL
-        Bot->>LogChannel: Log benign URL detection
     end
 
     Bot->>Bot: Check if message is duplicate
@@ -140,19 +118,19 @@ sequenceDiagram
     alt Reaction to Approve (✅)
         Bot->>Bot: Check if user has not suspicion role
         alt User has not suspicion role
-            Bot->>SuspicionRole: Remove suspicion role from user
+            Bot->>SuspicionRole: Remove catched user from the quarantine (Suspicion role removed)
             Bot->>LogChannel: Log user approval (no malicious link)
         else User has suspicion role
-            Bot->>LogChannel: Log attempt to react without admin role
+            Bot->>Bot:Do nothing
         end
     else Reaction to Reject (❌)
         Bot->>Bot: Check if user has not suspicion role
         alt User has not suspicion role
-            Bot->>User: Ban user for malicious content
+            Bot->>User: Permanently ban the user
             Bot->>LogChannel: Notify admins of ban action
-            Bot->>User: Log user ban due to malicious content
+            Bot->>User: Log user ban in private message due to malicious content
         else User has suspicion role
-            Bot->>LogChannel: Log attempt to react without admin role
+            Bot->>Bot:Do nothing
         end
     end
 
