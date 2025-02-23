@@ -1,3 +1,8 @@
+"""
+Filename    : main.py
+Project     : Discord Link Blocker
+Description : Main module for Discord Link Blocker.
+"""
 import datetime
 import discord
 import UrlScan
